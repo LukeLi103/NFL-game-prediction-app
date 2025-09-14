@@ -18,6 +18,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import warnings
+import time
 warnings.filterwarnings("ignore")
 
 st.title("Luke's NFL Prediction App")
@@ -28,17 +29,26 @@ url = "https://www.pro-football-reference.com/years/2025/games.htm"
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                   "AppleWebKit/537.36 (KHTML, like Gecko) "
-                  "Chrome/116.0.0.0 Safari/537.36",
+                  "Chrome/129.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.google.com/"
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Referer": "https://www.pro-football-reference.com/",
 }
+time.sleep(1)
 
 response = requests.get(url, headers=headers)
-response.raise_for_status()
+# response.raise_for_status()
 html = response.text
 print(html[:500])
 
-soup = BeautifulSoup(response.text, "html.parser")
+with open("games2025.html", "r", encoding="utf-8") as f:
+    html = f.read()
+
+soup = BeautifulSoup(html, "html.parser")
+
+# soup = BeautifulSoup(response.text, "html.parser")
 
 # Find the schedule table
 table = soup.find("table", id="games")
