@@ -24,8 +24,19 @@ st.title("Luke's NFL Prediction App")
 
 # Scrape the NFL schedule for the current season
 url = "https://www.pro-football-reference.com/years/2025/games.htm"
-response = requests.get(url)
+
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/116.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.google.com/"
+}
+
+response = requests.get(url, headers=headers)
 response.raise_for_status()
+html = response.text
+print(html[:500])
 
 soup = BeautifulSoup(response.text, "html.parser")
 
@@ -133,6 +144,38 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, rando
 
 logreg = LogisticRegression(random_state=16)
 logreg.fit(x_train, y_train)
+
+if "@" in matchup:
+    away_team, home_team = matchup.split(" @ ")
+elif "vs" in matchup:
+    home_team, away_team = matchup.split(" vs ")
+else:
+    st.error(f"Could not parse matchup string: {matchup}")
+    home_team, away_team = None, None
+
+if home_team and away_team:
+    home_stats = table[(table['winner'] == home_team) | (table['loser'] == home_team)]
+    away_stats = table[(table['winner'] == away_team) | (table['loser'] == away_team)]
+
+    home_avg = home_stats.mean(numeric_only=True)
+    away_avg = away_stats.mean(numeric_only=True)
+
+    row = {}
+    for col in feature_cols:
+        if col.startswith("home_team"):
+            row[col] = home_avg.get(col, 0)
+        elif col.startswith("away_team"):
+            row[col] = away_avg.get(col, 0)
+        else:
+            row[col] = 0
+
+    matchup_features = pd.DataFrame([row], columns=feature_cols)
+
+    prediction = logreg.predict(matchup_features)
+    prediction_prob = logreg.predict_proba(matchup_features)
+
+    st.write("Prediction (1 = home team wins, 0 = away team wins):", int(prediction[0]))
+    st.write("Prediction Probability (home win):", prediction_prob[0][1])
 
 y_predlr = logreg.predict(x_test)
 
