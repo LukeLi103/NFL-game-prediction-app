@@ -36,7 +36,7 @@ headers = {
     "Connection": "keep-alive",
     "Referer": "https://www.pro-football-reference.com/",
 }
-time.sleep(1)
+# time.sleep(1)
 
 response = requests.get(url, headers=headers)
 # response.raise_for_status()
@@ -186,6 +186,15 @@ if home_team and away_team:
 
     st.write("Prediction (1 = home team wins, 0 = away team wins):", int(prediction[0]))
     st.write("Prediction Probability (home win):", prediction_prob[0][1])
+
+home_avg = home_stats.mean(numeric_only=True).to_frame(name="Home Avg")
+away_avg = away_stats.mean(numeric_only=True).to_frame(name="Away Avg")
+
+# Combine into one DataFrame for easier comparison
+averages_df = pd.concat([home_avg, away_avg], axis=1)
+
+st.subheader("Team Average Stats (Last Season)")
+st.dataframe(averages_df)
 
 y_predlr = logreg.predict(x_test)
 
