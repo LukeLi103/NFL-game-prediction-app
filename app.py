@@ -21,69 +21,6 @@ import warnings
 import time
 warnings.filterwarnings("ignore")
 
-
-st.title("Luke's NFL Prediction App")
-
-# separate model training and prediction
-predicting_app, training = st.tabs(["Prediction App", "Training Model"])
-
-
-# Scrape the NFL schedule for the current season
-url = "https://www.pro-football-reference.com/years/2025/games.htm"
-
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                  "AppleWebKit/537.36 (KHTML, like Gecko) "
-                  "Chrome/129.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
-    "Referer": "https://www.pro-football-reference.com/",
-}
-# time.sleep(1)
-
-response = requests.get(url, headers=headers)
-# response.raise_for_status()
-html = response.text
-print(html[:500])
-
-with open("games2025.html", "r", encoding="utf-8") as f:
-    html = f.read()
-
-soup = BeautifulSoup(html, "html.parser")
-
-# soup = BeautifulSoup(response.text, "html.parser")
-
-# Find the schedule table
-table = soup.find("table", id="games")
-
-# Extract headers
-headers = [th.get_text(strip=True) for th in table.find("thead").find_all("th")]
-
-# Extract rows
-rows = []
-for row in table.find("tbody").find_all("tr"):
-    if "class" in row.attrs and "thead" in row["class"]:
-        continue  # skip mid-table headers
-    cells = [cell.get_text(strip=True) for cell in row.find_all(["th", "td"])]
-    rows.append(cells)
-
-# Create DataFrame
-sked_df = pd.DataFrame(rows, columns=headers)
-sked_df.columns = ['Week', 'Day', 'Date', 'Time', 'Visitor', 'H/A', 'Home', 'Boxscore', 'PtsW', 'PtsL', 'YdsW', 'TOW', 'YdsL', 'TOL']
-sked_df = sked_df[['Week', 'Day', 'Date', 'Time', 'Visitor', 'H/A', 'Home']]
-sked_df['Matchup String'] = sked_df['Visitor'] + " " + sked_df['H/A'].apply(lambda x: "vs" if x == "" else "@") + " " + sked_df['Home']
-
-# Let the user select a week to filter down the schedule
-week = st.sidebar.selectbox('Select a week number', sked_df['Week'].unique())
-filtered_sked_df = sked_df[sked_df['Week'] == week]
-
-# Let the user select a specific matchup from the filtered list of matchups
-matchup = st.sidebar.selectbox('Select a matchup', filtered_sked_df['Matchup String'].unique())
-# st.write("The user selected the following matchup:", matchup)
-
-
 mapping = {
     "kan": "Kansas City Chiefs",
     "phi": "Philadelphia Eagles",
@@ -118,6 +55,105 @@ mapping = {
     "rai": "Las Vegas Raiders",
     "ram": "Los Angeles Rams"
 }
+
+abbrev_dict = {
+    'Arizona Cardinals': 'ARI',
+    'Atlanta Falcons': 'ATL',
+    'Baltimore Ravens': 'BAL',
+    'Buffalo Bills': 'BUF',
+    'Carolina Panthers': 'CAR',
+    'Chicago Bears': 'CHI',
+    'Cincinnati Bengals': 'CIN',
+    'Cleveland Browns': 'CLE',
+    'Dallas Cowboys': 'DAL',
+    'Denver Broncos': 'DEN',
+    'Detroit Lions': 'DET',
+    'Green Bay Packers': 'GB',
+    'Houston Texans': 'HOU',
+    'Indianapolis Colts': 'IND',
+    'Jacksonville Jaguars': 'JAX',
+    'Kansas City Chiefs': 'KC',
+    'Las Vegas Raiders': 'LV',
+    'Los Angeles Chargers': 'LAC',
+    'Los Angeles Rams': 'LAR',
+    'Miami Dolphins': 'MIA',
+    'Minnesota Vikings': 'MIN',
+    'New England Patriots': 'NE',
+    'New Orleans Saints': 'NO',
+    'New York Giants': 'NYG',
+    'New York Jets': 'NYJ',
+    'Philadelphia Eagles': 'PHI',
+    'Pittsburgh Steelers': 'PIT',
+    'San Francisco 49ers': 'SF',
+    'Seattle Seahawks': 'SEA',
+    'Tampa Bay Buccaneers': 'TB',
+    'Tennessee Titans': 'TEN',
+    'Washington Commanders': 'WAS'
+}
+
+abbrev2team = {v: k for k, v in abbrev_dict.items()} # reverse
+
+st.title("Luke's NFL Prediction App")
+
+# separate model training and prediction
+predicting_app, training = st.tabs(["Prediction App", "Training Model"])
+
+
+# Scrape the NFL schedule for the current season
+url = "https://www.pro-football-reference.com/years/2025/games.htm"
+
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/129.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Referer": "https://www.pro-football-reference.com/",
+}
+# time.sleep(1)
+
+response = requests.get(url, headers=headers)
+# response.raise_for_status()
+html = response.text
+# print(html[:500])
+
+with open("games2025.html", "r", encoding="utf-8") as f:
+    html = f.read()
+
+soup = BeautifulSoup(html, "html.parser")
+
+# soup = BeautifulSoup(response.text, "html.parser")
+
+# Find the schedule table
+table = soup.find("table", id="games")
+
+# Extract headers
+headers = [th.get_text(strip=True) for th in table.find("thead").find_all("th")]
+
+# Extract rows
+rows = []
+for row in table.find("tbody").find_all("tr"):
+    if "class" in row.attrs and "thead" in row["class"]:
+        continue  # skip mid-table headers
+    cells = [cell.get_text(strip=True) for cell in row.find_all(["th", "td"])]
+    rows.append(cells)
+
+# Create DataFrame
+sked_df = pd.DataFrame(rows, columns=headers)
+sked_df.columns = ['Week', 'Day', 'Date', 'Time', 'Visitor', 'H/A', 'Home', 'Boxscore', 'PtsW', 'PtsL', 'YdsW', 'TOW', 'YdsL', 'TOL']
+sked_df = sked_df[['Week', 'Day', 'Date', 'Time', 'Visitor', 'H/A', 'Home']]
+sked_df['Matchup String'] = sked_df['Visitor'].apply(lambda x: abbrev_dict[x]) + " " + sked_df['H/A'].apply(lambda x: "vs" if x == "" else "@") + " " + sked_df['Home'].apply(lambda x: abbrev_dict[x])
+
+# Let the user select a week to filter down the schedule
+week = st.sidebar.selectbox('Select a week number', sked_df['Week'].unique())
+filtered_sked_df = sked_df[sked_df['Week'] == week]
+
+# print(filtered_sked_df['Matchup String'].unique())
+# Let the user select a specific matchup from the filtered list of matchups
+matchup = st.sidebar.selectbox('Select a matchup', filtered_sked_df['Matchup String'].unique())
+# st.write("The user selected the following matchup:", matchup)
 
 with training:
     # home and away were flipped on the original dataset
@@ -169,8 +205,12 @@ with predicting_app:
 
     if "@" in matchup:
         away_team, home_team = matchup.split(" @ ")
+        away_team = abbrev2team[away_team]
+        home_team = abbrev2team[home_team]
     elif "vs" in matchup:
         home_team, away_team = matchup.split(" vs ")
+        away_team = abbrev2team[away_team]
+        home_team = abbrev2team[home_team]
     else:
         st.error(f"Could not parse matchup string: {matchup}")
         home_team, away_team = None, None
@@ -180,7 +220,14 @@ with predicting_app:
         home_stats = table[(table['id'].apply(lambda x: mapping[x[-3:]] == home_team))]
         away_stats = table[((table['winner'] == away_team) | (table['loser'] == away_team)) & (table['id'].apply(lambda x: mapping[x[-3:]] != away_team))]
 
-        
+        for col in home_stats.columns:
+            if col in ["away_team_possession_time", "home_team_possession_time"]:
+                home_stats[col] = home_stats[col].apply(lambda x: int(x.split(":")[0]) + (int(x.split(":")[1])/60))
+                away_stats[col] = away_stats[col].apply(lambda x: int(x.split(":")[0]) + (int(x.split(":")[1])/60))
+            if col not in ["id", "winner", "loser"]:
+                home_stats[col] = home_stats[col].astype(int)
+                away_stats[col] = away_stats[col].astype(int)
+            
 
         home_stats.drop(columns=['winner_score', 'won_by', 'loser_score'], axis=1, inplace = True)
         away_stats.drop(columns=['winner_score', 'won_by', 'loser_score'], axis=1, inplace = True)
@@ -188,6 +235,7 @@ with predicting_app:
         for feature in feature_cols:
             home_stats[feature] = home_stats[feature].astype(float)
             away_stats[feature] = away_stats[feature].astype(float)
+        
         home_tablename = "Average stats of the " + home_team + " in the 2024 NFL Season"
         away_tablename = "Average stats of the " + away_team + " in the 2024 NFL Season"
         home_avg = home_stats.mean(numeric_only=True).to_frame(name=home_tablename)
@@ -228,12 +276,13 @@ with predicting_app:
         st.write("Prediction (1 = home team wins, 0 = away team wins):", int(prediction[0]))
         st.write("Prediction Probability (home win):", prediction_prob[0][1])
 
-        st.write(home_stats)
-        st.write(away_stats)
+
+        st.dataframe(home_stats[[col for col in home_stats.columns if col != "id"]], hide_index = True)
+        st.dataframe(away_stats[[col for col in away_stats.columns if col != "id"]], hide_index = True)
         # st.write(feature_cols)
 
-        st.write(home_avg)
-        st.write(away_avg)
+        st.dataframe(home_avg)
+        st.dataframe(away_avg)
 
 
 # Combine into one DataFrame for easier comparison
