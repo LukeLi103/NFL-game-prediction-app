@@ -144,7 +144,13 @@ for row in table.find("tbody").find_all("tr"):
 sked_df = pd.DataFrame(rows, columns=headers)
 sked_df.columns = ['Week', 'Day', 'Date', 'Time', 'Visitor', 'H/A', 'Home', 'Boxscore', 'PtsW', 'PtsL', 'YdsW', 'TOW', 'YdsL', 'TOL']
 sked_df = sked_df[['Week', 'Day', 'Date', 'Time', 'Visitor', 'H/A', 'Home']]
-sked_df['Matchup String'] = sked_df['Visitor'].apply(lambda x: abbrev_dict[x]) + " " + sked_df['H/A'].apply(lambda x: "vs" if x == "" else "@") + " " + sked_df['Home'].apply(lambda x: abbrev_dict[x])
+# standardize matchup strings, flip order if h/a is blank
+sked_df['Matchup String'] = np.where(
+    sked_df['H/A'] == "",
+    sked_df['Home'].apply(lambda x: abbrev_dict[x]) + " @ " + sked_df['Visitor'].apply(lambda x: abbrev_dict[x]),
+    sked_df['Visitor'].apply(lambda x: abbrev_dict[x]) + " @ " + sked_df['Home'].apply(lambda x: abbrev_dict[x])
+)
+# sked_df['Matchup String'] = sked_df['Visitor'].apply(lambda x: abbrev_dict[x]) + " " + sked_df['H/A'].apply(lambda x: "vs" if x == "" else "@") + " " + sked_df['Home'].apply(lambda x: abbrev_dict[x])
 
 # Let the user select a week to filter down the schedule
 week = st.sidebar.selectbox('Select a week number', sked_df['Week'].unique())
@@ -207,10 +213,10 @@ with predicting_app:
         away_team, home_team = matchup.split(" @ ")
         away_team = abbrev2team[away_team]
         home_team = abbrev2team[home_team]
-    elif "vs" in matchup:
-        home_team, away_team = matchup.split(" vs ")
-        away_team = abbrev2team[away_team]
-        home_team = abbrev2team[home_team]
+    # elif "vs" in matchup:
+    #     home_team, away_team = matchup.split(" vs ")
+    #     away_team = abbrev2team[away_team]
+    #     home_team = abbrev2team[home_team]
     else:
         st.error(f"Could not parse matchup string: {matchup}")
         home_team, away_team = None, None
